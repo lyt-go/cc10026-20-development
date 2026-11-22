@@ -77,5 +77,25 @@ npm run dev
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。
 
+## 导出执行事件与调用明细检索
+
+同一导出任务号可能经历原执行、中断重跑、恢复补发等多次执行，每次执行都是
+独立的**执行尝试**（`attempt_no` + 执行回执 `receipt_id`），派发 / 成功 / 中断
+事件写入 `data/export_events/`，产物按尝试隔离为 `data/exports/{id}_A{n}.json`，
+同任务号的多次尝试不会合并成一次成功。
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/call_audit/export-trace?task_no=&receipts=` | 调用明细检索：按任务号或多个回执找回各次尝试，区分派发/成功/中断、产物有无与来源请求 |
+| `GET /api/export_task/{id}/attempts` | 查看任务的全部执行尝试及事件 |
+| `POST /api/export_task/{id}/dispatch` | 派发一次新的执行尝试（重跑入口） |
+| `POST /api/export_task/{id}/complete` | 完成指定尝试并写按尝试隔离的产物 |
+| `POST /api/export_task/{id}/interrupt` | 中断指定尝试，只记事件不产出文件 |
+| `POST /api/export_task/{id}/recover` | 恢复入口：带检索到的请求重跑，新尝试记录来源尝试与回执 |
+| `POST /api/export_task/{id}/reissue` | 补发入口：成功尝试从确认产物取数；中断缺输入时沿事件记录补采后恢复 |
+
+前端在「调用审计」模块下提供导出调用明细检索面板，在「导出任务」模块下
+提供执行尝试弹窗，支持带请求进入恢复入口并核查恢复关系与文件出处。
+
 领域：数据工程
 子方向：数据分析与数据应用

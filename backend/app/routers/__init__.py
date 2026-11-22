@@ -1,6 +1,6 @@
-"""业务路由汇总：所有模块共用一套资源路由，由领域服务完成分派。"""
+"""业务路由汇总：审计检索/恢复入口需在通用资源路由之前注册。"""
 from __future__ import annotations
 
-from app.routers import resource
+from app.routers import audit_trace, resource
 
-ROUTERS = [resource]
+ROUTERS = [audit_trace, resource]

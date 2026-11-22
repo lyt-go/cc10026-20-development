@@ -1,6 +1,14 @@
 import { request } from './client'
 import { moduleMeta } from '@/data/modules'
-import type { ActionResult, EntryRow, OverviewResult, PageResult } from '@/data/types'
+import type {
+  ActionResult,
+  EntryRow,
+  ExportAttemptsResult,
+  ExportTraceResult,
+  OverviewResult,
+  PageResult,
+  ReissueResult,
+} from '@/data/types'
 
 export { moduleMeta }
 
@@ -57,5 +65,47 @@ export async function downloadEntries(
 export async function loadOverview(): Promise<OverviewResult> {
   const response = await request('/api/overview')
   if (!response.ok) throw new Error('运营概览读取失败')
+  return await response.json()
+}
+
+// ========== 调用审计：导出调用明细检索与恢复补发 ==========
+
+export async function traceExportCalls(params: {
+  taskNo?: string
+  receipts?: string
+}): Promise<ExportTraceResult> {
+  const query = new URLSearchParams()
+  if (params.taskNo) query.set('task_no', params.taskNo)
+  if (params.receipts) query.set('receipts', params.receipts)
+  const response = await request(`/api/call_audit/export-trace?${query.toString()}`)
+  if (!response.ok) throw new Error('调用明细检索失败')
+  return await response.json()
+}
+
+export async function listExportAttempts(exportId: number): Promise<ExportAttemptsResult> {
+  const response = await request(`/api/export_task/${exportId}/attempts`)
+  if (!response.ok) throw new Error('执行尝试读取失败')
+  return await response.json()
+}
+
+export async function recoverExport(
+  exportId: number,
+  payload: { attempt_no: number; receipt_id?: string },
+): Promise<ReissueResult> {
+  const response = await request(`/api/export_task/${exportId}/recover`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+  return await response.json()
+}
+
+export async function reissueExport(
+  exportId: number,
+  payload: { attempt_no: number; receipt_id?: string; supplemental_inputs?: string[] },
+): Promise<ReissueResult> {
+  const response = await request(`/api/export_task/${exportId}/reissue`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
   return await response.json()
 }

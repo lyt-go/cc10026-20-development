@@ -60,6 +60,15 @@
             >
               {{ action }}
             </button>
+            <button
+              v-if="meta.key === 'export_task'"
+              class="link"
+              type="button"
+              :data-testid="`attempts-${row.id}`"
+              @click="openAttempts(row)"
+            >
+              执行尝试
+            </button>
           </td>
         </tr>
         <tr v-if="!rows.length">
@@ -69,6 +78,10 @@
         </tr>
       </tbody>
     </table>
+
+    <ExportTracePanel v-if="meta.key === 'call_audit'" />
+
+    <ExportAttemptsModal v-if="attemptsEntryId !== null" :entry-id="attemptsEntryId" @close="attemptsEntryId = null" />
 
     <div v-if="showCreate" class="modal-backdrop" data-testid="create-modal">
       <form class="modal" @submit.prevent="submitCreate">
@@ -104,6 +117,8 @@ import {
   runAction as applyAction,
 } from '@/api/backend-service'
 import type { EntryRow } from '@/data/types'
+import ExportAttemptsModal from './ExportAttemptsModal.vue'
+import ExportTracePanel from './ExportTracePanel.vue'
 
 const props = defineProps<{ moduleKey: string }>()
 const meta = moduleMeta(props.moduleKey)
@@ -115,6 +130,7 @@ const filterFields = meta.fields.slice(0, 3)
 const showCreate = ref(false)
 const creating = ref(false)
 const createValues = ref<Record<string, string>>({})
+const attemptsEntryId = ref<number | null>(null)
 const stats = computed(() => [
   { label: meta.metrics[0], value: total.value },
   { label: meta.metrics[1], value: rows.value.filter((row) => row.status === meta.statuses[1]).length },
@@ -163,6 +179,10 @@ async function submitCreate() {
   } finally {
     creating.value = false
   }
+}
+
+function openAttempts(row: EntryRow) {
+  attemptsEntryId.value = Number(row.id)
 }
 
 async function runAction(action: string, row: EntryRow) {
